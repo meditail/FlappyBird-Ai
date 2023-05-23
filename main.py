@@ -1,11 +1,14 @@
 import pygame
 import random
+import numpy as np
+from collections import defaultdict
 
 SIZE = (WIDTH, HEIGHT) = 600, 800
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLACK = (0, 0, 0)
+FPS = 60
 
 
 class Bird:
@@ -15,15 +18,18 @@ class Bird:
         self.falling_speed = 1
 
     def move(self, jump=False):
+        # check top border
         if self.y + self.falling_speed <= 0:
             self.falling_speed = 0
 
+        # check bottom border
         if self.y > HEIGHT and self.falling_speed > 0:
             self.falling_speed = 0
 
-        self.y += self.falling_speed
         if jump:
             self.jump()
+
+        self.y += self.falling_speed
         self.falling_speed += 0.2
 
     def jump(self):
@@ -37,28 +43,30 @@ class Pipe:
     def __init__(self, x):
         self.x = x
         self.y = random.randint(10, 590)
+        self.width = 50
+        self.gap_height = 200
 
     def move(self):
         self.x -= 3
-        if self.x <= -50:
+        if self.x <= -self.width:
             self.x = 850
             self.y = random.randint(10, 590)
 
-    def bird_collision(self, x, y):
-        if self.x < x < self.x + 50:
-            if not (self.y < y < self.y + 200):
+    def bird_collision(self, bird):
+        if self.x < bird.x < self.x + self.width:
+            if not (self.y < bird.y < self.y + self.gap_height):
                 return True
         return False
 
     def draw(self, window):
-        pygame.draw.rect(window, GREEN, (self.x, 0, 50, self.y))
-        pygame.draw.rect(window, GREEN, (self.x, self.y + 200, 50, HEIGHT))
+        pygame.draw.rect(window, GREEN, (self.x, 0, self.width, self.y))
+        pygame.draw.rect(window, GREEN, (self.x, self.y + self.gap_height, self.width, HEIGHT))
 
 
 class Game:
 
     def __init__(self):
-        pygame.font.init()
+        pygame.init()
         pygame.display.set_caption("Flappy Bird")
         self.WINDOW = pygame.display.set_mode(SIZE)
         self.bird = Bird()
@@ -66,6 +74,7 @@ class Game:
         self.score = 0
         self.next_pipe = self.pipes[0]
         self.done = False
+        self.clock = pygame.time.Clock()
 
     def reset(self):
         self.bird = Bird()
@@ -84,16 +93,16 @@ class Game:
             self.next_pipe = self.__get_next_pipe()
             self.score += 1
 
-        collision = self.next_pipe.bird_collision(self.bird.x, self.bird.y)
+        collision = self.next_pipe.bird_collision(self.bird)
         reward = 1
 
         if collision:
             self.done = True
             reward = -100
 
-        state = (self.bird.x, self.bird.y, self.bird.falling_speed, self.next_pipe.x, self.next_pipe.y)
+        state = (round(self.bird.x), round(self.bird.y), round(self.bird.falling_speed), self.next_pipe.x, self.next_pipe.y)
 
-        return state, reward
+        return str(state), reward, self.done
 
     def render(self):
         self.WINDOW.fill(WHITE)
@@ -112,3 +121,62 @@ class Game:
         front_of_bird_pipes = [pipe for pipe in self.pipes if pipe.x + 50 >= self.bird.x]
         next_pipe = sorted(front_of_bird_pipes, key=lambda pipe: pipe.x)[0]
         return next_pipe
+    
+    def play(self):
+        while not self.done:
+            jump = False
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.done = True
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        jump = True
+            
+            self.step(jump)
+            self.render()
+            self.clock.tick(FPS)
+        
+
+epsilon = 0.7
+
+class Agent:
+
+    def __init__(self):
+        self.env = Game()
+        self.done = self.env.done
+        self.episodes = 10000
+        self.q = defaultdict(lambda: [0, 0])
+
+    def train(self):
+        global epsilon
+        rewards = [0 for _ in range(self.episodes)]
+        for episode in range(self.episodes):
+            state = self.env.reset()
+            done = False
+            while not done:
+               
+                epsilon -= 0.001
+                old_state = state
+                action = self.__get_action(state, epsilon)
+                state, reward, done = self.env.step(action == 0)
+                
+
+                update_value = reward + self.q[old_state][action] * 0.9
+                self.q[state][action] += update_value
+
+
+                rewards[episode] += reward
+
+            print(rewards[episode], episode)
+        print(rewards[np.argmax(rewards)])
+        print(epsilon)
+        
+
+    def __get_action(self, state, epsilon):
+        if random.uniform(0, 1) > epsilon:
+            return np.argmax(self.q[state])
+        else:
+            return np.random.choice([True, False], p=[0.01, 0.99])
+
+agent = Agent()
+agent.train()
