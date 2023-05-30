@@ -2,6 +2,7 @@ import pygame
 import random
 import numpy as np
 from collections import defaultdict
+import pickle
 
 SIZE = (WIDTH, HEIGHT) = 600, 800
 WHITE = (255, 255, 255)
@@ -87,7 +88,7 @@ class Game:
     def step(self, action):
         for pipe in self.pipes:
             pipe.move()
-        self.bird.move(action)
+        self.bird.move(action==1)
 
         if not self.next_pipe == self.__get_next_pipe():
             self.next_pipe = self.__get_next_pipe()
@@ -98,9 +99,11 @@ class Game:
 
         if collision:
             self.done = True
-            reward = -100
+            reward = -10000
 
-        state = (round(self.bird.x), round(self.bird.y), round(self.bird.falling_speed), self.next_pipe.x, self.next_pipe.y)
+        diff_y = round((self.bird.y - self.next_pipe.y)/5) * 5
+
+        state = (diff_y, self.bird.falling_speed, round(self.next_pipe.x/5)*5)
 
         return str(state), reward, self.done
 
@@ -137,46 +140,70 @@ class Game:
             self.clock.tick(FPS)
         
 
-epsilon = 0.7
+learning_rate = 0.9
 
 class Agent:
 
     def __init__(self):
+        self.epsilon = 0.8
         self.env = Game()
-        self.done = self.env.done
-        self.episodes = 10000
+        self.episodes = 1000000
         self.q = defaultdict(lambda: [0, 0])
+        self.clock = pygame.time.Clock()
+
+
+    def load(self):
+        with open("qlearning.b", "rb") as file:
+            for key, value in pickle.load(file).items():
+                self.q[key] = value
+
 
     def train(self):
-        global epsilon
-        rewards = [0 for _ in range(self.episodes)]
+        self.load()
+        scores = []
         for episode in range(self.episodes):
-            state = self.env.reset()
+            
             done = False
+            state = self.env.reset()
             while not done:
-               
-                epsilon -= 0.001
-                old_state = state
-                action = self.__get_action(state, epsilon)
-                state, reward, done = self.env.step(action == 0)
+                action = self.__get_action(state)
+                new_state, reward, done = self.env.step(action)
+
+                current_q = self.q[state][action]
+                next_max_q = np.max(self.q[new_state])
+                new_q = current_q + learning_rate * (reward + 0.95 * next_max_q - current_q)
+
+                self.q[state][action] = new_q
+
+                state = new_state
+            scores.append(self.env.score)
+            if episode % 100 == 0:
+                print(episode, ": ", np.mean(scores[-100:]))
+            if episode % 1000 == 0:
+                with open("qlearning.b", "wb") as file:
+                    pickle.dump(dict(self.q), file)
+
                 
+    def test(self):
+        done = False
+        state = self.env.reset()
+        self.epsilon = 0
+        self.load()
 
-                update_value = reward + self.q[old_state][action] * 0.9
-                self.q[state][action] += update_value
 
+        while not done:
+            action = self.__get_action(state)
+            new_state, reward, done = self.env.step(action)
+            state = new_state
+            self.clock.tick(FPS)
+            self.env.render()
 
-                rewards[episode] += reward
-
-            print(rewards[episode], episode)
-        print(rewards[np.argmax(rewards)])
-        print(epsilon)
-        
-
-    def __get_action(self, state, epsilon):
-        if random.uniform(0, 1) > epsilon:
+    def __get_action(self, state):
+        self.epsilon -= 0.0001
+        if np.random.uniform(0, 1) >  self.epsilon:
             return np.argmax(self.q[state])
         else:
-            return np.random.choice([True, False], p=[0.01, 0.99])
+            return np.random.choice([1, 0])
 
 agent = Agent()
-agent.train()
+agent.test()
