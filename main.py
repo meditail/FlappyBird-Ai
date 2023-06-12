@@ -3,16 +3,23 @@ import numpy as np
 from collections import defaultdict
 import pickle
 from FlappyBird import Game    
+import sys
 
 learning_rate = 0.9
 FPS = 60
+
+test_or_train = sys.argv[1]
+episodes = 0
+if test_or_train == "train":
+    episodes = int(sys.argv[2])
+
 
 class Agent:
 
     def __init__(self):
         self.epsilon = 0.8
         self.env = Game()
-        self.episodes = 1000000
+        self.episodes = episodes
         self.q = defaultdict(lambda: [0, 0])
         self.clock = pygame.time.Clock()
 
@@ -75,6 +82,9 @@ class Agent:
         else:
             return np.random.choice([1, 0])
 
+
 agent = Agent()
-agent.train()
-agent.test()
+if test_or_train == "train":
+    agent.train()
+else:
+    agent.test()
