@@ -4,7 +4,6 @@ import numpy as np
 import sys
 import logging
 from collections import defaultdict
-
 from FlappyBird import Game    
 
 
@@ -16,6 +15,7 @@ FPS = 60
 test_or_train = sys.argv[1]
 episodes = sys.argv[2] if test_or_train == "train" else 0
 
+
 class Agent:
 
     def __init__(self):
@@ -24,7 +24,6 @@ class Agent:
         self.episodes = int(episodes)
         self.q = defaultdict(lambda: [0, 0])
         self.clock = pygame.time.Clock()
-
 
     def load(self):
         try: 
@@ -39,7 +38,6 @@ class Agent:
         with open("qlearning.b", "wb") as file:
                 pickle.dump(dict(self.q), file)
                 logging.info(message)
-
 
     def train(self):
         self.load()
@@ -66,7 +64,6 @@ class Agent:
             if episode % 1000 == 0:
                 self.save_model("Q values saved")
 
-                
     def test(self):
         done = False
         state = self.env.reset()
