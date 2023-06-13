@@ -17,7 +17,6 @@ episodes = sys.argv[2] if test_or_train == "train" else 0
 
 
 class Agent:
-
     def __init__(self):
         self.epsilon = 0.8
         self.env = Game()
@@ -36,8 +35,8 @@ class Agent:
 
     def save_model(self, message):
         with open("qlearning.b", "wb") as file:
-                pickle.dump(dict(self.q), file)
-                logging.info(message)
+            pickle.dump(dict(self.q), file)
+            logging.info(message)
 
     def train(self):
         self.load()
@@ -79,7 +78,7 @@ class Agent:
 
     def __get_action(self, state):
         self.epsilon -= 0.0001
-        if np.random.uniform(0, 1) >  self.epsilon:
+        if np.random.uniform(0, 1) > self.epsilon:
             return np.argmax(self.q[state])
         else:
             return np.random.choice([1, 0])

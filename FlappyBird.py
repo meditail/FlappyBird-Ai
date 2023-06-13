@@ -7,16 +7,26 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLACK = (0, 0, 0)
 FPS = 60
+VELOCITY = 0.2
+JUMP_VELOCITY = -8
+START_VELOCITY = 1
+BIRD_SIZE = 20
+PIPE_HEIGHT = 200
+PIPE_WIDTH = 50
+PIPE_SPEED = -2
+PIPE_START_HEIGHT = 50
+PIPE_NEW_STARTING_POINT = 850
+
 
 class Bird:
     def __init__(self):
         self.x = WIDTH * 0.2 
         self.y = HEIGHT * 0.4
-        self.velocity = 1
+        self.velocity = START_VELOCITY
 
     def move(self, jump=False):
         self.y += self.velocity
-        self.velocity += 0.2
+        self.velocity += VELOCITY
 
         self.y = max(0, min(self.y, HEIGHT)) 
 
@@ -24,33 +34,31 @@ class Bird:
             self.jump()
 
     def jump(self):
-        self.velocity = -8
+        self.velocity = JUMP_VELOCITY
 
     def draw(self, window):
-        pygame.draw.circle(window, RED, (self.x, self.y), 20)
+        pygame.draw.circle(window, RED, (self.x, self.y), BIRD_SIZE)
 
 
 class Pipe:
     def __init__(self, x):
         self.x = x
-        self.y = random.randint(10, 590)
-        self.width = 50
-        self.gap_height = 200
+        self.y = random.randint(PIPE_START_HEIGHT, HEIGHT - PIPE_HEIGHT - PIPE_START_HEIGHT)
 
     def move(self):
-        self.x -= 2
-        if self.x <= -self.width:
-            self.x = 850
-            self.y = random.randint(10, 590)
+        self.x += PIPE_SPEED
+        if self.x <= -PIPE_WIDTH:
+            self.x = PIPE_NEW_STARTING_POINT
+            self.y = random.randint(PIPE_START_HEIGHT, HEIGHT - PIPE_HEIGHT - PIPE_START_HEIGHT)
 
     def bird_collision(self, bird):
-        obstacle_horizontal_range = self.x < bird.x < self.x + self.width
-        obstacle_vertical_range = not (self.y < bird.y < self.y + self.gap_height)
+        obstacle_horizontal_range = self.x < bird.x < self.x + PIPE_WIDTH
+        obstacle_vertical_range = not (self.y < bird.y < self.y + PIPE_HEIGHT)
         return obstacle_horizontal_range and obstacle_vertical_range
 
     def draw(self, window):
-        pygame.draw.rect(window, GREEN, (self.x, 0, self.width, self.y))
-        pygame.draw.rect(window, GREEN, (self.x, self.y + self.gap_height, self.width, HEIGHT))
+        pygame.draw.rect(window, GREEN, (self.x, 0, PIPE_WIDTH, self.y))
+        pygame.draw.rect(window, GREEN, (self.x, self.y + PIPE_HEIGHT, PIPE_WIDTH, HEIGHT))
 
 
 class Game:
@@ -77,7 +85,7 @@ class Game:
     def step(self, action):
         for pipe in self.pipes:
             pipe.move()
-        self.bird.move(action==1)
+        self.bird.move(action == 1)
 
         reward = 1
 
@@ -111,7 +119,7 @@ class Game:
         pygame.display.update()
 
     def __get_next_pipe(self):
-        front_of_bird_pipes = [pipe for pipe in self.pipes if pipe.x + 50 >= self.bird.x]
+        front_of_bird_pipes = [pipe for pipe in self.pipes if pipe.x + PIPE_WIDTH >= self.bird.x]
         next_pipe = sorted(front_of_bird_pipes, key=lambda pipe: pipe.x)[0]
         return next_pipe
     
@@ -128,3 +136,6 @@ class Game:
             self.step(jump)
             self.render()
             self.clock.tick(FPS)
+
+
+Game().play()
