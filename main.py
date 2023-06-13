@@ -1,25 +1,27 @@
 import pygame
-import numpy as np
-from collections import defaultdict
 import pickle
-from FlappyBird import Game    
+import numpy as np
 import sys
+import logging
+from collections import defaultdict
+
+from FlappyBird import Game    
+
+
+logging.basicConfig(level=logging.INFO)
 
 learning_rate = 0.9
 FPS = 60
 
 test_or_train = sys.argv[1]
-episodes = 0
-if test_or_train == "train":
-    episodes = int(sys.argv[2])
-
+episodes = sys.argv[2] if test_or_train == "train" else 0
 
 class Agent:
 
     def __init__(self):
         self.epsilon = 0.8
         self.env = Game()
-        self.episodes = episodes
+        self.episodes = int(episodes)
         self.q = defaultdict(lambda: [0, 0])
         self.clock = pygame.time.Clock()
 
@@ -33,6 +35,11 @@ class Agent:
         except FileNotFoundError:
             with open("qlearning.b", "w") as file:
                 print("File was created")
+
+    def save_model(self):
+        with open("qlearning.b", "wb") as file:
+                pickle.dump(dict(self.q), file)
+                logging.info(f"Saving model")
 
 
     def train(self):
@@ -54,11 +61,11 @@ class Agent:
 
                 state = new_state
             scores.append(self.env.score)
+
             if episode % 100 == 0:
-                print(episode, ": ", np.mean(scores[-100:]))
+                logging.info(f"Episode {episode}: mean {np.mean(scores[-100:])}")
             if episode % 1000 == 0:
-                with open("qlearning.b", "wb") as file:
-                    pickle.dump(dict(self.q), file)
+                self.save_model()
 
                 
     def test(self):
@@ -66,7 +73,6 @@ class Agent:
         state = self.env.reset()
         self.epsilon = 0
         self.load()
-
 
         while not done:
             action = self.__get_action(state)
@@ -83,8 +89,9 @@ class Agent:
             return np.random.choice([1, 0])
 
 
-agent = Agent()
-if test_or_train == "train":
-    agent.train()
-else:
-    agent.test()
+if __name__ == "__main__":
+    agent = Agent()
+    if test_or_train == "train":
+        agent.train()
+    else:
+        agent.test()

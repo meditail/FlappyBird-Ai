@@ -10,28 +10,21 @@ FPS = 60
 
 class Bird:
     def __init__(self):
-        # bird spanwns 20% of the left side and 40% from the top
         self.x = WIDTH * 0.2 
         self.y = HEIGHT * 0.4
-        self.falling_speed = 1
+        self.velocity = 1
 
     def move(self, jump=False):
-        # check top border
-        if self.y + self.falling_speed <= 0:
-            self.falling_speed = 0
+        self.y += self.velocity
+        self.velocity += 0.2
 
-        # check bottom border
-        if self.y > HEIGHT and self.falling_speed > 0:
-            self.falling_speed = 0
+        self.y = max(0, min(self.y, HEIGHT)) 
 
         if jump:
             self.jump()
 
-        self.y += self.falling_speed
-        self.falling_speed += 0.2
-
     def jump(self):
-        self.falling_speed = -8
+        self.velocity = -8
 
     def draw(self, window):
         pygame.draw.circle(window, RED, (self.x, self.y), 20)
@@ -45,16 +38,15 @@ class Pipe:
         self.gap_height = 200
 
     def move(self):
-        self.x -= 3
+        self.x -= 2
         if self.x <= -self.width:
             self.x = 850
             self.y = random.randint(10, 590)
 
     def bird_collision(self, bird):
-        if self.x < bird.x < self.x + self.width:
-            if not (self.y < bird.y < self.y + self.gap_height):
-                return True
-        return False
+        obstacle_horizontal_range = self.x < bird.x < self.x + self.width
+        obstacle_vertical_range = not (self.y < bird.y < self.y + self.gap_height)
+        return obstacle_horizontal_range and obstacle_vertical_range
 
     def draw(self, window):
         pygame.draw.rect(window, GREEN, (self.x, 0, self.width, self.y))
@@ -80,7 +72,7 @@ class Game:
         self.score = 0
         self.next_pipe = self.pipes[0]
         self.done = False
-        return self.bird.x, self.bird.y, self.bird.falling_speed, self.next_pipe.x, self.next_pipe.y
+        return self.bird.x, self.bird.y, self.bird.velocity, self.next_pipe.x, self.next_pipe.y
 
     def step(self, action):
         for pipe in self.pipes:
@@ -95,15 +87,13 @@ class Game:
 
         collision = self.next_pipe.bird_collision(self.bird)
         
-
         if collision:
             self.done = True
             reward = -10000
 
-
         difference_y_pipe_bird = round((self.bird.y - self.next_pipe.y)/5) * 5 
 
-        state = (difference_y_pipe_bird, self.bird.falling_speed, round(self.next_pipe.x/5)*5)
+        state = (difference_y_pipe_bird, self.bird.velocity, round(self.next_pipe.x/5)*5)
 
         return str(state), reward, self.done
 
