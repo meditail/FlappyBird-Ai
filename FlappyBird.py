@@ -13,7 +13,7 @@ START_VELOCITY = 1
 BIRD_SIZE = 20
 PIPE_HEIGHT = 200
 PIPE_WIDTH = 50
-PIPE_SPEED = -2
+PIPE_SPEED = -3
 PIPE_START_HEIGHT = 50
 PIPE_NEW_STARTING_POINT = 850
 
@@ -92,16 +92,21 @@ class Game:
         if not self.next_pipe == self.__get_next_pipe():
             self.next_pipe = self.__get_next_pipe()
             self.score += 1
+            reward = 10
 
         collision = self.next_pipe.bird_collision(self.bird)
         
         if collision:
             self.done = True
-            reward = -10000
+            reward = -100000
 
         difference_y_pipe_bird = round((self.bird.y - self.next_pipe.y)/5) * 5 
 
-        state = (difference_y_pipe_bird, self.bird.velocity, round(self.next_pipe.x/5)*5)
+        state = (
+            difference_y_pipe_bird,
+            self.bird.velocity,
+            round(self.next_pipe.x/5)*5
+        )
 
         return str(state), reward, self.done
 
@@ -136,6 +141,3 @@ class Game:
             self.step(jump)
             self.render()
             self.clock.tick(FPS)
-
-
-Game().play()

@@ -12,9 +12,9 @@ pip install -r requirements.txt
 
 ## Training
 
-The AI model can be trained by providing two parameters. The first parameter specifies the mode, which can be either "train" or "test". The second parameter determines the number of training episodes to run. A recommended value for training episodes is 500,000. You can start the training process with the following command:
+The AI model can be trained by providing two parameters. The first parameter specifies the mode, which can be either "train" or "test". The second parameter determines the number of training episodes to run. A recommended value for training episodes is 200,000. You can start the training process with the following command:
 ```
-python main.py train 500000
+python main.py train 200000
 ```
 
 During training, the program will display the mean score of the last 100 training episodes as the output, which indicates the progress of the learning process.
