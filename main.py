@@ -29,17 +29,16 @@ class Agent:
     def load(self):
         try: 
             with open("qlearning.b", "rb") as file:
-                print("File was found")
+                logging.info("Q values found")
                 for key, value in pickle.load(file).items():
                     self.q[key] = value
         except FileNotFoundError:
-            with open("qlearning.b", "w") as file:
-                print("File was created")
+            self.save_model("File created")
 
-    def save_model(self):
+    def save_model(self, message):
         with open("qlearning.b", "wb") as file:
                 pickle.dump(dict(self.q), file)
-                logging.info(f"Saving model")
+                logging.info(message)
 
 
     def train(self):
@@ -65,7 +64,7 @@ class Agent:
             if episode % 100 == 0:
                 logging.info(f"Episode {episode}: mean {np.mean(scores[-100:])}")
             if episode % 1000 == 0:
-                self.save_model()
+                self.save_model("Q values saved")
 
                 
     def test(self):
